@@ -1,4 +1,4 @@
-import puppeteer, { LaunchOptions } from 'puppeteer';
+import { chromium, Browser, BrowserContext, Page } from 'playwright';
 import OpenAI from 'openai';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -65,22 +65,21 @@ export interface ProcessingResult {
 }
 
 /**
- * Captures a screenshot of the specified URL using Puppeteer
+ * Captures a screenshot of the specified URL using Playwright
  * @param url - The URL to capture
  * @returns Promise resolving to screenshot data
  */
 async function captureScreenshot(url: string): Promise<ScreenshotData> {
-  let browser;
+  let browser: Browser | null = null;
 
   // Try multiple browser launch strategies
-  const launchConfigs: LaunchOptions[] = [
-    // Strategy 1: Use system Chrome
+  const launchConfigs = [
+    // Strategy 1: Standard Chromium
     {
-      executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
     },
-    // Strategy 2: Default Puppeteer Chrome
+    // Strategy 2: Chromium with additional flags
     {
       headless: true,
       args: [
@@ -99,7 +98,7 @@ async function captureScreenshot(url: string): Promise<ScreenshotData> {
   for (let i = 0; i < launchConfigs.length; i++) {
     try {
       console.log(`Trying browser configuration ${i + 1}/${launchConfigs.length}...`);
-      browser = await puppeteer.launch(launchConfigs[i]);
+      browser = await chromium.launch(launchConfigs[i]);
       console.log(`✅ Browser launched successfully with config ${i + 1}`);
       break;
     } catch (error) {
@@ -114,19 +113,17 @@ async function captureScreenshot(url: string): Promise<ScreenshotData> {
   }
 
   try {
-    const page = await browser.newPage();
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 720 },
+      userAgent:
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    });
+
+    const page = await context.newPage();
 
     // Set reasonable timeouts
     page.setDefaultTimeout(30000);
     page.setDefaultNavigationTimeout(30000);
-
-    // Set viewport for consistent screenshots
-    await page.setViewport({ width: 1280, height: 720 });
-
-    // Set user agent
-    await page.setUserAgent(
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    );
 
     console.log(`Navigating to: ${url}`);
     await page.goto(url, {
@@ -134,8 +131,8 @@ async function captureScreenshot(url: string): Promise<ScreenshotData> {
       timeout: 20000
     });
 
-    // Wait for page to stabilize using delay
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    // Wait for page to stabilize
+    await page.waitForTimeout(2000);
 
     // Get page title
     const title = (await page.title()) || 'Untitled Page';

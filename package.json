@@ -23,6 +23,7 @@
         "@puppeteer/browsers": "^2.10.10",
         "dotenv": "^16.3.1",
         "openai": "^4.20.1",
+        "playwright": "^1.56.0",
         "puppeteer": "^24.23.0"
     },
     "devDependencies": {
