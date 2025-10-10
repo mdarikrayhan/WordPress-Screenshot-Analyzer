@@ -204,17 +204,42 @@ async function analyzeImage(imagePath: string): Promise<ImageAnalysis> {
           content: [
             {
               type: 'text',
-              text: `Please analyze this image and provide:
-1. A detailed description of what you see in the image
-2. Identify any potential issues, errors, or quality problems such as:
-   - Low image quality or resolution
-   - Text that appears incorrect or has spelling errors
-   - Poor composition or framing
-   - Technical issues (blurry, pixelated, corrupted)
-   - UI/UX problems if it's a screenshot
-   - Any other notable issues
+              text: `You are an expert WordPress developer and automation assistant.
+Your task is to analyze the problem described or shown by the user (it may be a website URL or an image of a broken WordPress site) and generate a complete technical solution.
+Focus on identifying the root cause and providing practical steps or automation solutions that can fix the issue efficiently.
 
-Please respond in JSON format with "description" and "issues" fields, where issues is an array of strings.`
+Follow these steps in your response:
+	1.	Analyze the given input (URL or image) to detect the main problem with the WordPress site.
+Examples: internal server error, white screen of death, database connection issue, plugin conflict, theme error, missing CSS/JS, SSL misconfiguration, slow performance, etc.
+	2.	Explain the most likely cause of the issue in simple terms.
+	3.	Provide a step-by-step solution, including any relevant WordPress admin actions, server configuration changes, database fixes, or file edits required.
+	4.	If applicable, suggest a plugin-based or code-based fix to automate or prevent the issue in the future.
+Include:
+	•	Suggested plugin name or approach (existing plugin or a new one)
+	•	Description of what it should do
+	•	Technical notes (WordPress hooks, functions, or APIs to use)
+	5.	End the response with an Expected Outcome section describing what should happen after applying the solution.
+
+Example format:
+
+Detected Issue:
+(Explain the issue)
+
+Possible Cause:
+(Why it happened)
+
+Step-by-Step Solution:
+(1. …
+2. …
+3. …)
+
+Automation or Plugin Suggestion:
+(If applicable — plugin name, purpose, technical idea)
+
+Expected Outcome:
+(Explain what the user will see when the issue is fixed)
+
+Now, analyze the provided input and generate your full response following the above format.`
             },
             {
               type: 'image_url',
