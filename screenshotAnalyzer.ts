@@ -1,4 +1,4 @@
-import { chromium, Browser, BrowserContext, Page } from 'playwright';
+import { chromium } from 'playwright';
 import OpenAI from 'openai';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -66,88 +66,26 @@ export interface ProcessingResult {
 
 /**
  * Captures a screenshot of the specified URL using Playwright
- * @param url - The URL to capture
- * @returns Promise resolving to screenshot data
  */
 async function captureScreenshot(url: string): Promise<ScreenshotData> {
-  let browser: Browser | null = null;
-
-  // Try multiple browser launch strategies
-  const launchConfigs = [
-    // Strategy 1: Standard Chromium
-    {
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
-    },
-    // Strategy 2: Chromium with additional flags
-    {
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-web-security',
-        '--no-first-run'
-      ]
-    }
-  ];
-
-  let lastError: Error | null = null;
-
-  for (let i = 0; i < launchConfigs.length; i++) {
-    try {
-      console.log(`Trying browser configuration ${i + 1}/${launchConfigs.length}...`);
-      browser = await chromium.launch(launchConfigs[i]);
-      console.log(`✅ Browser launched successfully with config ${i + 1}`);
-      break;
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error('Browser launch failed');
-      console.log(`❌ Config ${i + 1} failed:`, lastError.message);
-      continue;
-    }
-  }
-
-  if (!browser) {
-    throw new Error(`Failed to launch browser with any configuration. Last error: ${lastError?.message}`);
-  }
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
 
   try {
     const context = await browser.newContext({
-      viewport: { width: 1280, height: 720 },
-      userAgent:
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      viewport: { width: 1280, height: 720 }
     });
 
     const page = await context.newPage();
-
-    // Set reasonable timeouts
     page.setDefaultTimeout(30000);
-    page.setDefaultNavigationTimeout(30000);
 
-    console.log(`Navigating to: ${url}`);
-    await page.goto(url, {
-      waitUntil: 'domcontentloaded',
-      timeout: 20000
-    });
-
-    // Wait for page to stabilize
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(2000);
 
-    // Get page title
     const title = (await page.title()) || 'Untitled Page';
-    console.log(`Page loaded successfully. Title: ${title}`);
-
-    // Capture screenshot
-    console.log('Capturing screenshot...');
-    const screenshot = await page.screenshot({
-      type: 'png',
-      fullPage: false
-    });
-
-    console.log(`Screenshot captured successfully! Size: ${screenshot.length} bytes`);
-
-    // Convert to base64
+    const screenshot = await page.screenshot({ type: 'png' });
     const screenshotBase64 = Buffer.from(screenshot).toString('base64');
 
     return {
@@ -159,10 +97,7 @@ async function captureScreenshot(url: string): Promise<ScreenshotData> {
       }
     };
   } finally {
-    if (browser) {
-      await browser.close();
-      console.log('Browser closed');
-    }
+    await browser.close();
   }
 }
 
