@@ -31,9 +31,9 @@ async function runTests() {
   // Test 2: Input validation - both parameters
   console.log('\nTest 2: Both URL and image path provided');
   try {
-    const result = await processInput({ 
-      url: 'https://example.com', 
-      imagePath: './test.png' 
+    const result = await processInput({
+      url: 'https://example.com',
+      imagePath: './test.png'
     });
     if (result.error && result.error.includes('Only one of url or imagePath should be provided')) {
       console.log('✅ PASS - Correctly validates conflicting parameters');
@@ -97,7 +97,7 @@ async function runTests() {
 
   console.log('\n' + '='.repeat(50));
   console.log(`🧪 Test Results: ${passed} passed, ${failed} failed`);
-  
+
   if (failed === 0) {
     console.log('🎉 All tests passed! The module is working correctly.');
     process.exit(0);
@@ -109,7 +109,7 @@ async function runTests() {
 
 // Run tests if this file is executed directly
 if (require.main === module) {
-  runTests().catch(error => {
+  runTests().catch((error) => {
     console.error('❌ Test runner failed:', error);
     process.exit(1);
   });

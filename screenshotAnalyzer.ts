@@ -71,19 +71,14 @@ export interface ProcessingResult {
  */
 async function captureScreenshot(url: string): Promise<ScreenshotData> {
   let browser;
-  
+
   // Try multiple browser launch strategies
   const launchConfigs: LaunchOptions[] = [
     // Strategy 1: Use system Chrome
     {
       executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
       headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu'
-      ]
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
     },
     // Strategy 2: Default Puppeteer Chrome
     {
@@ -100,7 +95,7 @@ async function captureScreenshot(url: string): Promise<ScreenshotData> {
   ];
 
   let lastError: Error | null = null;
-  
+
   for (let i = 0; i < launchConfigs.length; i++) {
     try {
       console.log(`Trying browser configuration ${i + 1}/${launchConfigs.length}...`);
@@ -113,7 +108,7 @@ async function captureScreenshot(url: string): Promise<ScreenshotData> {
       continue;
     }
   }
-  
+
   if (!browser) {
     throw new Error(`Failed to launch browser with any configuration. Last error: ${lastError?.message}`);
   }
@@ -140,10 +135,10 @@ async function captureScreenshot(url: string): Promise<ScreenshotData> {
     });
 
     // Wait for page to stabilize using delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Get page title
-    const title = await page.title() || 'Untitled Page';
+    const title = (await page.title()) || 'Untitled Page';
     console.log(`Page loaded successfully. Title: ${title}`);
 
     // Capture screenshot
@@ -202,13 +197,13 @@ async function analyzeImage(imagePath: string): Promise<ImageAnalysis> {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: 'gpt-4o',
       messages: [
         {
-          role: "user",
+          role: 'user',
           content: [
             {
-              type: "text",
+              type: 'text',
               text: `Please analyze this image and provide:
 1. A detailed description of what you see in the image
 2. Identify any potential issues, errors, or quality problems such as:
@@ -222,7 +217,7 @@ async function analyzeImage(imagePath: string): Promise<ImageAnalysis> {
 Please respond in JSON format with "description" and "issues" fields, where issues is an array of strings.`
             },
             {
-              type: "image_url",
+              type: 'image_url',
               image_url: {
                 url: `data:${mimeType};base64,${base64Image}`
               }
@@ -309,18 +304,18 @@ function validateInput(input: ProcessInputOptions): void {
 
 /**
  * Main function that processes either a URL (screenshot) or an image file (analysis).
- * 
+ *
  * @param input - Configuration object containing either a URL or image path
  * @param input.url - Optional URL to capture screenshot from
  * @param input.imagePath - Optional path to local image file to analyze
  * @returns Promise resolving to processing result with screenshot data or image analysis
- * 
+ *
  * @example
  * ```typescript
  * // Capture screenshot from URL
  * const result1 = await processInput({ url: "https://example.com" });
  * console.log(result1.data?.screenshotBase64);
- * 
+ *
  * // Analyze local image
  * const result2 = await processInput({ imagePath: "./image.png" });
  * console.log(result2.analysis?.description);
@@ -352,7 +347,7 @@ export async function processInput(input: ProcessInputOptions): Promise<Processi
   } catch (error) {
     // Return error in result object instead of throwing
     let errorMessage: string;
-    
+
     if (error instanceof Error) {
       errorMessage = error.message;
     } else if (typeof error === 'string') {

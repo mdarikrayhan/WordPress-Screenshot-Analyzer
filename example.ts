@@ -10,7 +10,7 @@ async function runExamples() {
   console.log('📸 Example 1: Capturing screenshot from URL');
   try {
     const result1 = await processInput({ url: 'https://github.com' });
-    
+
     if (result1.error) {
       console.error('❌ Error:', result1.error);
     } else if (result1.data) {
@@ -29,7 +29,7 @@ async function runExamples() {
   // Example 2: Analyze a local image (uncomment and provide a real image path)
   console.log('🔍 Example 2: Analyzing local image');
   console.log('⚠️  Note: This example requires a valid image file and OPENAI_API_KEY');
-  
+
   // Uncomment the following lines and provide a valid image path to test:
   /*
   try {
