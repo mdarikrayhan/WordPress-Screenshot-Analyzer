@@ -1,211 +1,91 @@
-# 🧠 Task: Develop a TypeScript Utility Module for Screenshot & Image Analysis
+# WordPress Screenshot Analyzer
 
-## Goal
-Create a **TypeScript module** (a single `.ts` file) that can be easily imported into an existing project.  
-This module should expose a main function that accepts **either a URL or an image file**, and returns structured JSON data describing the result.
+A small TypeScript module that does two things through one function, `processInput`. Given a URL, it opens the page in headless Chromium with Playwright and returns a screenshot as Base64 along with the page title and a timestamp. Given an image file, it sends the image to OpenAI's `gpt-4o` with a prompt asking for a WordPress troubleshooting report: the detected issue, its likely cause, step-by-step fix, a plugin or automation suggestion, and the expected outcome. A separate `workflow.ts` script chains the two steps so you can screenshot a site and diagnose it in one go. It was written in October 2025 to a task brief that asked for one importable module with no Express server or HTTP routing.
 
-No Express API or HTTP routing should be included — just a reusable TypeScript utility.
+## Features
 
----
+- **One entry point:** `processInput({ url })` captures a screenshot, and `processInput({ imagePath })` analyses an image.
+- **Input validation:** exactly one of `url` or `imagePath` must be given, and neither may be empty.
+- **No thrown errors:** errors, such as a missing file or a missing `OPENAI_API_KEY`, come back in the result's `error` field instead of being thrown.
+- **Screenshots:** a 1280×720 viewport, captured two seconds after the DOM has loaded.
+- **Image formats:** `.png`, `.jpg`/`.jpeg`, `.gif`, `.webp` and `.bmp`. Any other extension is sent labelled as PNG.
+- **Analysis output:** if the model replies with JSON, `analysis.description` and `analysis.issues` are filled from it. The prompt asks for a plain-text report, though, so normally the whole reply ends up in `description` and `issues` stays empty.
+- **`workflow.ts`:** takes a website URL, an image URL or a local image path. Website URLs are screenshotted first, and image URLs are downloaded. The script then prints the diagnosis and deletes its temporary file.
 
-## ✅ Implementation Complete
+## Tech stack
 
-### Project Structure
-```
-tsapi/
-├── screenshotAnalyzer.ts    # Main utility module
-├── example.ts               # Usage examples
-├── package.json            # Dependencies
-├── tsconfig.json           # TypeScript configuration
-├── .env.example            # Environment variables template
-├── .gitignore              # Git ignore rules
-└── README.md               # This file
-```
+- TypeScript (strict mode, compiled to CommonJS)
+- Playwright (Chromium) for screenshots
+- OpenAI Node SDK (`gpt-4o`) for image analysis
+- dotenv for configuration
+- ts-node for running the scripts
 
-### Quick Start
+## Getting started
 
-1. **Install dependencies:**
+1. Install the dependencies and Playwright's Chromium:
+
    ```bash
    npm install
+   npx playwright install chromium
    ```
 
-2. **Set up environment variables:**
-   ```bash
-   cp .env.example .env
-   # Edit .env and add your OpenAI API key
+2. Create a `.env` file with your OpenAI key. It's only needed for image analysis.
+
+   ```
+   OPENAI_API_KEY=your_api_key_here
    ```
 
-3. **Build the project:**
-   ```bash
-   npm run build
-   ```
+3. Run the scripts:
 
-4. **Run examples:**
-   ```bash
-   npm run example
-   ```
+   | Command | What it does |
+   | --- | --- |
+   | `npm run build` | Compiles the TypeScript to `dist/` |
+   | `npm run dev` | Compiles in watch mode |
+   | `npm run example` | Runs [example.ts](example.ts), which screenshots https://github.com. The image example in that file is commented out. |
+   | `npm test` | Runs [test.ts](test.ts), five input-validation checks |
+   | `npx ts-node workflow.ts <url-or-image>` | Screenshots and diagnoses a site, or diagnoses an image. Without an argument it uses https://google.com. |
 
-### Main Function
-Export a single asynchronous function:
+   For example, `npx ts-node workflow.ts ./image.png` analyses the bundled sample, [image.png](image.png), a page showing WordPress's "Error establishing a database connection".
+
+## Usage
 
 ```ts
-async function processInput(input: { url?: string; imagePath?: string }): Promise<ProcessingResult>
+import { processInput } from "./screenshotAnalyzer";
+
+(async () => {
+  const shot = await processInput({ url: "https://example.com" });
+  console.log(shot.data?.metadata.title, shot.data?.screenshotBase64.length);
+
+  const report = await processInput({ imagePath: "./image.png" });
+  console.log(report.analysis?.description);
+})();
 ```
 
-⸻
-
-## 📋 Functional Requirements
-
-### 1. When a URL is provided
-- Uses Puppeteer to:
-  - Visit the URL
-  - Capture a screenshot of the page
-  - Return an object containing:
-    - The screenshot as a Base64 string
-    - Page metadata: title, URL, timestamp
-
-### 2. When an image is provided
-- Uses the OpenAI API (with OPENAI_API_KEY from environment variables) to:
-  - Describe the content of the image
-  - Identify possible issues or errors (e.g., low quality, text errors, poor composition)
-  - Return a structured JSON summary
-
-### 3. Return Format
-
-The function returns an object like:
+The result has this shape:
 
 ```ts
 interface ProcessingResult {
   type: "url" | "image";
   data?: {
-    screenshotBase64?: string;
-    metadata?: { title: string; url: string; timestamp: string };
+    screenshotBase64: string;
+    metadata: { title: string; url: string; timestamp: string };
   };
-  analysis?: {
-    description: string;
-    issues: string[];
-  };
+  analysis?: { description: string; issues: string[] };
   error?: string;
 }
 ```
 
-**Example response:**
-```json
-{
-  "type": "url",
-  "data": {
-    "screenshotBase64": "iVBORw0KGgoAAAANSUhEUgAA...",
-    "metadata": {
-      "title": "Example Website",
-      "url": "https://example.com",
-      "timestamp": "2025-10-10T04:00:00Z"
-    }
-  }
-}
+## Project structure
+
+```
+screenshotAnalyzer.ts   the module: processInput and its exported types
+workflow.ts             screenshot-then-analyse script (also exports ScreenshotAndAnalysis)
+example.ts              usage example
+test.ts                 input-validation tests
+image.png               sample screenshot of a WordPress database error
+.env.example            environment variable template
 ```
 
-⸻
+## Author
 
-## 🧩 Implementation Details
-
-### Dependencies
-- `puppeteer` (for screenshots)
-- `openai` (for image analysis)
-- `fs` and `path` (for reading local image files)
-- `dotenv` (for environment variables)
-
-### Environment Variables
-Create a `.env` file with:
-```
-OPENAI_API_KEY=your_api_key_here
-```
-
-### Expected Usage Example
-
-```typescript
-import { processInput } from "./screenshotAnalyzer";
-
-(async () => {
-  // Capture screenshot from URL
-  const result1 = await processInput({ url: "https://example.com" });
-  console.log(result1);
-
-  // Analyze local image
-  const result2 = await processInput({ imagePath: "./test-image.png" });
-  console.log(result2);
-})();
-```
-
-⸻
-
-## 🛠️ Features
-
-- ✅ **Input Validation**: Ensures exactly one of `url` or `imagePath` is provided
-- ✅ **Error Handling**: Catches and returns errors gracefully inside the result object
-- ✅ **Self-contained**: No external Express or API logic
-- ✅ **Strictly Typed**: Full TypeScript type safety and production-ready code
-- ✅ **JSDoc Comments**: Comprehensive documentation for all exported functions and interfaces
-- ✅ **Screenshot Capture**: Full-page screenshots with metadata extraction
-- ✅ **Image Analysis**: AI-powered content description and issue detection
-- ✅ **Multiple Image Formats**: Supports PNG, JPEG, GIF, WebP, and BMP
-
-## 🚀 API Reference
-
-### Main Function
-
-```typescript
-processInput(input: ProcessInputOptions): Promise<ProcessingResult>
-```
-
-Processes either a URL (screenshot) or an image file (analysis).
-
-**Parameters:**
-- `input.url` (optional): URL to capture screenshot from
-- `input.imagePath` (optional): Path to local image file to analyze
-
-**Returns:** Promise resolving to `ProcessingResult`
-
-### Types
-
-```typescript
-interface ProcessInputOptions {
-  url?: string;
-  imagePath?: string;
-}
-
-interface ProcessingResult {
-  type: 'url' | 'image';
-  data?: ScreenshotData;
-  analysis?: ImageAnalysis;
-  error?: string;
-}
-
-interface ScreenshotData {
-  screenshotBase64: string;
-  metadata: PageMetadata;
-}
-
-interface ImageAnalysis {
-  description: string;
-  issues: string[];
-}
-```
-
-## 📦 Scripts
-
-- `npm run build` - Compile TypeScript to JavaScript
-- `npm run dev` - Watch mode for development
-- `npm run example` - Run the example usage file
-
-⸻
-
-## 📝 Notes
-
-- The module validates that exactly one of `url` or `imagePath` is provided
-- All errors are caught and returned gracefully inside the result object
-- The file is fully self-contained with no external Express or API logic
-- TypeScript is strictly typed and production-ready
-- Includes comprehensive JSDoc comments for all exported functions and interfaces
-
-**Deliverable:** 
-A single TypeScript file named `screenshotAnalyzer.ts` that can be dropped into any Node.js project and used immediately.
+Md Arik Rayhan — [mdarikrayhan.com](https://mdarikrayhan.com)
